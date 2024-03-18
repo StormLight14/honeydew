@@ -1,6 +1,7 @@
 use futures::prelude::*;
 use irc::client::prelude::*;
 use std::io;
+use std::thread;
 
 const SERVER: &'static str = "chat.freenode.net";
 
@@ -35,15 +36,21 @@ async fn main() -> irc::error::Result<()> {
 
     println!("{:?}", sender);
 
+    thread::spawn(move || {
+        send_message(client, channel.trim());
+    });
+
+    println!("non blocking.");
+
     while let Some(message) = stream.next().await.transpose()? {
-        println!("{:?}", message.command);
+        //println!("{:?}", message.command);
 
         match message.command {
             Command::JOIN(channel, _key1, _key2) => {
-                println!("Someone joined {}! :3", channel);
+                println!("Someone joined {}!", channel);
             }
             _ => {
-                println!("{}", parse_message(&message));
+                print!("{}", parse_message(&message));
             }
         }
     }
@@ -56,15 +63,28 @@ fn parse_message(message: &Message) -> String {
 
     if message_str.starts_with(":") && message_str.contains("PRIVMSG") {
         let split_msg = message_str.splitn(3, " ").collect::<Vec<&str>>();
-        println!("{:?}", split_msg);
+        let first_part = split_msg[0].split("~").collect::<Vec<&str>>();
+        let last_part = split_msg[2].splitn(2, " ").collect::<Vec<&str>>();
+        let sender_username = first_part[0].replace(":", "");
+        let sender_message = last_part[1];
 
-        return format!(
-            "{} | {}: {}",
-            split_msg[2],
-            split_msg[1].replace(":", " "),
-            split_msg[3].replace(":", " ")
-        );
+        //println!("{:?}", split_msg);
+
+        return format!("{}: {}", sender_username, sender_message);
     }
 
     String::new()
+}
+
+fn send_message(client: Client, channel: &str) {
+    loop {
+        let mut user_message = String::new();
+        io::stdin()
+            .read_line(&mut user_message)
+            .expect("Could not read user input.");
+
+        client
+            .send_privmsg(channel, user_message.trim())
+            .expect("Message failed to send.");
+    }
 }
