@@ -36,19 +36,35 @@ async fn main() -> irc::error::Result<()> {
     println!("{:?}", sender);
 
     while let Some(message) = stream.next().await.transpose()? {
-        print!("{}", message);
         println!("{:?}", message.command);
 
         match message.command {
             Command::JOIN(channel, _key1, _key2) => {
-                println!("Joined {}! :3", channel);
+                println!("Someone joined {}! :3", channel);
             }
-            Command::PRIVMSG(priv_nickname, message) => {
-                println!("{} {}", priv_nickname, message);
+            _ => {
+                println!("{}", parse_message(&message));
             }
-            _ => {}
         }
     }
 
     Ok(())
+}
+
+fn parse_message(message: &Message) -> String {
+    let message_str = message.to_string();
+
+    if message_str.starts_with(":") && message_str.contains("PRIVMSG") {
+        let split_msg = message_str.splitn(3, " ").collect::<Vec<&str>>();
+        println!("{:?}", split_msg);
+
+        return format!(
+            "{} | {}: {}",
+            split_msg[2],
+            split_msg[1].replace(":", " "),
+            split_msg[3].replace(":", " ")
+        );
+    }
+
+    String::new()
 }
