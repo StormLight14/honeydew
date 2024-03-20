@@ -32,48 +32,44 @@ async fn main() -> irc::error::Result<()> {
     client.identify()?;
 
     let mut stream = client.stream()?;
-    let sender = client.sender();
-
-    println!("{:?}", sender);
+    let _sender = client.sender();
 
     thread::spawn(move || {
         send_message(client, channel.trim());
     });
 
-    println!("non blocking.");
-
     while let Some(message) = stream.next().await.transpose()? {
-        //println!("{:?}", message.command);
-
-        match message.command {
-            Command::JOIN(channel, _key1, _key2) => {
-                println!("Someone joined {}!", channel);
-            }
-            _ => {
-                print!("{}", parse_message(&message));
-            }
-        }
+        println!("{}", message);
+        println!("{}", parse_message(&message, &nickname));
     }
 
     Ok(())
 }
 
-fn parse_message(message: &Message) -> String {
-    let message_str = message.to_string();
+fn parse_message(message: &Message, nickname: &String) -> String {
+    let command = &message.command;
+    let message_sender = &message.source_nickname();
 
-    if message_str.starts_with(":") && message_str.contains("PRIVMSG") {
-        let split_msg = message_str.splitn(3, " ").collect::<Vec<&str>>();
-        let first_part = split_msg[0].split("~").collect::<Vec<&str>>();
-        let last_part = split_msg[2].splitn(2, " ").collect::<Vec<&str>>();
-        let sender_username = first_part[0].replace(":", "");
-        let sender_message = last_part[1];
-
-        //println!("{:?}", split_msg);
-
-        return format!("{}: {}", sender_username, sender_message);
+    if let Some(message_sender) = message_sender {
+        match command {
+            Command::PRIVMSG(sent_to, msg_text) => {
+                if sent_to == nickname {
+                    format!("PM from {}: {}", message_sender, msg_text)
+                } else {
+                    format!("{}: {}", message_sender, msg_text)
+                }
+            }
+            Command::NOTICE(_sent_to, notice_text) => {
+                format!("NOTICE: {}", notice_text)
+            }
+            Command::QUIT(_) => {
+                format!("")
+            }
+            _ => format!("{}", message),
+        }
+    } else {
+        String::new()
     }
-
-    String::new()
 }
 
 fn send_message(client: Client, channel: &str) {
@@ -82,9 +78,10 @@ fn send_message(client: Client, channel: &str) {
         io::stdin()
             .read_line(&mut user_message)
             .expect("Could not read user input.");
+        let user_message = user_message.trim();
 
         client
-            .send_privmsg(channel, user_message.trim())
+            .send_privmsg(channel, user_message)
             .expect("Message failed to send.");
     }
 }
