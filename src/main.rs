@@ -97,6 +97,7 @@ fn parse_message(message: &Message, nickname: &String) -> String {
             }
         }
         Command::PING(_, _) => String::new(),
+        Command::PONG(_, _) => String::new(),
         Command::JOIN(_, _, _) => {
             if let Some(message_sender) = message_sender {
                 format!("{} joined.\n", message_sender)
@@ -104,11 +105,11 @@ fn parse_message(message: &Message, nickname: &String) -> String {
                 format!("Someone joined. Don't ask me who.\n")
             }
         }
-        Command::PART(_, _) => {
+        Command::PART(one, two) => {
             if let Some(message_sender) = message_sender {
                 format!("{} left the channel.", message_sender.blue())
             } else {
-                format!("")
+                format!("{:?} {:?}", one, two)
             }
         }
         Command::QUIT(_) => {
