@@ -202,6 +202,20 @@ fn send_message<'a>(client: &Client, channel: &str) -> Option<CommandResult> {
             _ => {}
         }
     } else {
+        if user_message.contains("/msg") {
+            println!("{}", "It looks like you are trying to send a private message. Still send message to current channel anyway? (y/n)".yellow());
+            let mut answer = String::new();
+            io::stdin()
+                .read_line(&mut answer)
+                .expect("Failed to read input.");
+
+            if answer.to_lowercase().trim() != "y" {
+                println!("{}", "Not sending message.".red());
+                return None;
+            } else {
+                println!("{}", "Sent message!".green());
+            }
+        }
         client
             .send_privmsg(channel, user_message)
             .expect("Message failed to send.");
