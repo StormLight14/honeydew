@@ -79,7 +79,7 @@ fn parse_message(message: &Message, nickname: &String) -> String {
                 } else {
                     format!(
                         "[{}] {} -- | {:?}\n",
-                        sent_to,
+                        sent_to.green(),
                         message_sender.blue(),
                         msg_text
                     )
