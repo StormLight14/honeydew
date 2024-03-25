@@ -155,11 +155,6 @@ fn send_message<'a>(client: &Client, channel: &str) -> Option<CommandResult> {
             .collect::<Vec<String>>();
 
         match command[0].as_str() {
-            "auth" => {
-                if command.len() != 2 {
-                    println!("{}", "Usage: /auth")
-                }
-            }
             "quit" => match client.send_quit("Closed by user.") {
                 Ok(_) => {
                     println!("Quitting.");
