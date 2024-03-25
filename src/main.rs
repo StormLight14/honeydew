@@ -75,9 +75,14 @@ fn parse_message(message: &Message, nickname: &String) -> String {
         Command::PRIVMSG(sent_to, msg_text) => {
             if let Some(message_sender) = message_sender {
                 if sent_to == nickname.trim() {
-                    format!("PM from {}: {}\n", message_sender, msg_text)
+                    format!("PM from {}: {}\n", message_sender.blue(), msg_text)
                 } else {
-                    format!("[{}] {}: {}\n", sent_to, message_sender, msg_text)
+                    format!(
+                        "[{}] {} -- | {:?}\n",
+                        sent_to,
+                        message_sender.blue(),
+                        msg_text
+                    )
                 }
             } else {
                 String::new()
@@ -100,7 +105,7 @@ fn parse_message(message: &Message, nickname: &String) -> String {
         Command::PONG(_, _) => String::new(),
         Command::JOIN(_, _, _) => {
             if let Some(message_sender) = message_sender {
-                format!("{} joined.\n", message_sender)
+                format!("{} joined.\n", message_sender.blue())
             } else {
                 format!("Someone joined. Don't ask me who.\n")
             }
@@ -162,6 +167,14 @@ fn send_message<'a>(client: &Client, channel: &str) -> Option<CommandResult> {
                         &command[1].green()
                     )
                 }
+            },
+            "msg" => match client.send_privmsg(&command[1], &command[2]) {
+                Ok(_) => {}
+                Err(_) => println!(
+                    "{} {}",
+                    "Error occured sending message to".red(),
+                    &command[1].green()
+                ),
             },
             _ => {}
         }
