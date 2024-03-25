@@ -189,6 +189,10 @@ fn send_message<'a>(client: &Client, channel: &str) -> Option<CommandResult> {
                     )
                 }
             },
+            "nick" => match client.send(Command::NICK(command[1].clone())) {
+                Ok(_) => println!("Nick should have changed to {}", &command[1].green()),
+                Err(_) => println!("{}", "Could not change your nickname.".red()),
+            },
             "msg" => match client.send_privmsg(&command[1], &command[2..command.len()].join(" ")) {
                 Ok(_) => {
                     println!("Attempted to send message to: {}", &command[1].blue())
