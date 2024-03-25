@@ -91,9 +91,18 @@ fn parse_message(message: &Message, nickname: &String) -> String {
         Command::NOTICE(_sent_to, notice_text) => {
             format!("{} {}\n", "NOTICE:".yellow(), notice_text)
         }
-        Command::Response(_response_type, text_vec) => {
-            format!("{}\n", text_vec.last().unwrap())
-        }
+        Command::Response(response_type, text_vec) => match response_type {
+            Response::RPL_NAMREPLY => {
+                format!("Users connected to channel: {}\n", text_vec.last().unwrap())
+            }
+            _ => {
+                format!(
+                    "Response Type: {:?}, {}\n",
+                    response_type,
+                    text_vec.last().unwrap()
+                )
+            }
+        },
         Command::MOTD(motd) => {
             if let Some(motd) = motd {
                 format!("MOTD: {}\n", motd)
@@ -112,9 +121,16 @@ fn parse_message(message: &Message, nickname: &String) -> String {
         }
         Command::PART(one, two) => {
             if let Some(message_sender) = message_sender {
-                format!("{} left the channel.", message_sender.blue())
+                format!("{} left the channel.\n", message_sender.blue())
             } else {
-                format!("{:?} {:?}", one, two)
+                format!("{:?} {:?}\n", one, two)
+            }
+        }
+        Command::LIST(chanlist, _target) => {
+            if let Some(chanlist) = chanlist {
+                format!("Users connected to channel: {}\n", chanlist)
+            } else {
+                String::new()
             }
         }
         Command::QUIT(_) => {
@@ -139,6 +155,11 @@ fn send_message<'a>(client: &Client, channel: &str) -> Option<CommandResult> {
             .collect::<Vec<String>>();
 
         match command[0].as_str() {
+            "auth" => {
+                if command.len() != 2 {
+                    println!("{}", "Usage: /auth")
+                }
+            }
             "quit" => match client.send_quit("Closed by user.") {
                 Ok(_) => {
                     println!("Quitting.");
@@ -168,8 +189,10 @@ fn send_message<'a>(client: &Client, channel: &str) -> Option<CommandResult> {
                     )
                 }
             },
-            "msg" => match client.send_privmsg(&command[1], &command[2]) {
-                Ok(_) => {}
+            "msg" => match client.send_privmsg(&command[1], &command[2..command.len()].join(" ")) {
+                Ok(_) => {
+                    println!("Attempted to send message to: {}", &command[1].blue())
+                }
                 Err(_) => println!(
                     "{} {}",
                     "Error occured sending message to".red(),
